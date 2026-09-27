@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 48" fill="none" class="dailydesk-logo">
+  <defs>
+    <linearGradient id="dd-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366F1" />
+      <stop offset="50%" stop-color="#8B5CF6" />
+      <stop offset="100%" stop-color="#06B6D4" />
+    </linearGradient>
+    <linearGradient id="check-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#E0E7FF" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#6366F1" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Logo Mark Icon -->
+  <g transform="translate(4, 4)">
+    <!-- Base Icon Rounded Box -->
+    <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#dd-gradient)" filter="url(#glow)"/>
+    
+    <!-- Desk Surface Top -->
+    <path d="M8 24C8 23.4477 8.44772 23 9 23H31C31.5523 23 32 23.4477 32 24V25C32 25.5523 31.5523 26 31 26H9C8.44772 26 8 25.5523 8 25V24Z" fill="rgba(255, 255, 255, 0.4)"/>
+    <!-- Desk Legs / Calendar Grid Line -->
+    <path d="M12 26V32M28 26V32" stroke="rgba(255, 255, 255, 0.6)" stroke-width="2" stroke-linecap="round"/>
+
+    <!-- Dynamic Checkmark & Daily Star Sunburst -->
+    <path d="M11 16.5L16.5 21.5L29 9" stroke="url(#check-grad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Accent Sparkle for Daily Life -->
+    <circle cx="28.5" cy="19.5" r="1.5" fill="#38BDF8"/>
+  </g>
+
+  <!-- Logo Text -->
+  <text x="54" y="27" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="21" font-weight="800" fill="currentColor" letter-spacing="-0.5">
+    Daily<tspan fill="#6366F1">Desk</tspan>
+  </text>
+  <text x="55" y="38" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="600" fill="#94A3B8" letter-spacing="0.8">
+    ORGANIZED PRODUCTIVITY
+  </text>
+</svg>

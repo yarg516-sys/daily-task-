@@ -1,0 +1,1494 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DailyDesk — Everything you need for a more organized day.</title>
+  <meta name="description" content="Modern personal productivity and daily-life management application. Manage tasks, expenses, notes, goals, and daily focus in one integrated dashboard powered by Supabase.">
+
+  <!-- Inter Google Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+  <!-- Core CSS -->
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- External Libraries: Supabase, Lucide Icons, Chart.js, Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+
+  <!-- ==============================================================================
+       1. GLOBAL STICKY HEADER
+       ============================================================================== -->
+  <header class="top-header">
+    <div class="brand-wrapper">
+      <button id="mobile-menu-toggle" class="btn-icon md:hidden" aria-label="Open Navigation">
+        <i data-lucide="menu"></i>
+      </button>
+      <div onclick="DailyDeskApp.navigate('dashboard')" style="cursor: pointer; display: flex; align-items: center;">
+        <img src="assets/logo.svg" alt="DailyDesk Logo" class="brand-logo-img">
+      </div>
+    </div>
+
+    <!-- Center Omnibar Trigger -->
+    <div class="header-center">
+      <button class="header-search-btn global-search-trigger">
+        <span class="flex items-center gap-2">
+          <i data-lucide="search" class="icon-xs"></i>
+          <span>Search tasks, expenses, notes, goals...</span>
+        </span>
+        <span class="kbd-shortcut">Ctrl K</span>
+      </button>
+    </div>
+
+    <!-- Right Header Controls -->
+    <div class="header-right">
+      <!-- Database Connection Status Badge -->
+      <div id="db-status-pill" class="status-pill status-success" onclick="DailyDeskApp.openModal('sql-modal')" title="Click to view Supabase Connection & SQL Schema">
+        <span class="status-indicator"></span>
+        <span class="status-text">Supabase Active</span>
+      </div>
+
+      <!-- Theme Switcher -->
+      <button class="btn-icon theme-toggle-btn" title="Toggle Light/Dark Theme" aria-label="Toggle Theme">
+        <i data-lucide="sun"></i>
+      </button>
+
+      <!-- Quick Search Icon for Mobile -->
+      <button class="btn-icon global-search-trigger md:hidden" title="Search">
+        <i data-lucide="search"></i>
+      </button>
+
+      <!-- Guest Login / Sign Up (When logged out) -->
+      <div class="guest-only items-center gap-2" style="display: none;">
+        <button class="btn btn-ghost btn-sm" onclick="DailyDeskApp.openAuthModal('signin')">Sign In</button>
+        <button class="btn btn-primary btn-sm" onclick="DailyDeskApp.openAuthModal('signup')">Get Started</button>
+      </div>
+
+      <!-- User Profile Dropdown (When Logged in) -->
+      <div class="logged-in-only items-center gap-2">
+        <div class="user-profile-menu" onclick="DailyDeskApp.navigate('profile')">
+          <img id="nav-user-avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80" alt="Avatar" class="nav-avatar">
+          <div class="hidden md:flex flex-col text-left">
+            <span id="nav-user-name" class="font-semibold text-xs text-main">Alex Morgan</span>
+            <span id="nav-user-role" class="badge badge-primary text-[10px] py-0 px-1">Pro</span>
+          </div>
+        </div>
+
+        <button class="btn-icon btn-icon-danger" onclick="DailyDeskAuth.signOut()" title="Sign Out">
+          <i data-lucide="log-out"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==============================================================================
+       2. LANDING / HOME PAGE VIEW
+       ============================================================================== -->
+  <main id="landing-page-view" class="landing-view" style="display: none;">
+    <!-- Hero Section -->
+    <section class="landing-hero">
+      <div class="hero-badge">
+        <i data-lucide="sparkles" class="icon-xs"></i>
+        <span>DailyDesk 2.5 • Unified Productivity Suite</span>
+      </div>
+      <h1 class="hero-title">
+        Everything you need for a <br>
+        <span class="hero-title-gradient">more organized day.</span>
+      </h1>
+      <p class="hero-desc">
+        Stop juggling four separate apps for your daily life. DailyDesk brings tasks, expenses, notes, long-term goals, and your daily focus agenda together in one modern workspace.
+      </p>
+      <div class="hero-cta-group">
+        <button class="btn btn-primary btn-lg" onclick="DailyDeskApp.navigate('dashboard')">
+          <i data-lucide="layout-dashboard"></i> Launch DailyDesk Workspace
+        </button>
+        <button class="btn btn-outline btn-lg" onclick="DailyDeskAuth.loginAsDemo('user')">
+          <i data-lucide="play-circle"></i> Instant Demo User
+        </button>
+        <button class="btn btn-outline btn-lg" onclick="DailyDeskAuth.loginAsDemo('admin')">
+          <i data-lucide="shield-check"></i> Admin Portal Demo
+        </button>
+      </div>
+    </section>
+
+    <!-- Browser Mockup Interactive Preview Frame -->
+    <section class="landing-preview-frame">
+      <div class="preview-browser-mockup">
+        <div class="mockup-header-bar">
+          <div class="mockup-dot dot-red"></div>
+          <div class="mockup-dot dot-yellow"></div>
+          <div class="mockup-dot dot-green"></div>
+          <span class="text-xs text-muted font-mono ml-3">https://dailydesk.app/workspace/overview</span>
+        </div>
+        <div class="p-6 md:p-8 bg-surface">
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="metric-card">
+              <div class="metric-label">Today's Focus Tasks</div>
+              <div class="metric-value text-indigo-400">4 / 6 Done</div>
+              <div class="metric-sub">67% completion rate</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Today's Expenses</div>
+              <div class="metric-value text-emerald-400">$63.50</div>
+              <div class="metric-sub">Well within $100 budget</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Active Milestone Goals</div>
+              <div class="metric-value text-amber">4 In Progress</div>
+              <div class="metric-sub">Next due in 14 days</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Daily Productivity Score</div>
+              <div class="metric-value text-main">84 / 100</div>
+              <div class="metric-sub text-emerald-400 font-semibold">Supercharged ⚡</div>
+            </div>
+          </div>
+          <div class="text-center pt-4">
+            <button class="btn btn-primary" onclick="DailyDeskApp.navigate('dashboard')">
+              Open Full Interactive Dashboard <i data-lucide="arrow-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Core Features Grid -->
+    <section class="landing-features-grid">
+      <div class="feature-card">
+        <div class="feature-icon bg-indigo-500/10 text-indigo-400">
+          <i data-lucide="check-square"></i>
+        </div>
+        <h3 class="text-lg font-bold mb-2">Priority Task Manager</h3>
+        <p class="text-sm text-muted">
+          Organize with high, medium, and low priority tags, custom categories, due dates, smart sorting, and instant search. Never drop a ball again.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon bg-emerald-500/10 text-emerald-400">
+          <i data-lucide="pie-chart"></i>
+        </div>
+        <h3 class="text-lg font-bold mb-2">Smart Expense Tracker</h3>
+        <p class="text-sm text-muted">
+          Log daily transactions by category, track weekly and monthly burns, visualize spending with interactive Chart.js graphs, and export to CSV.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon bg-sky-500/10 text-sky-400">
+          <i data-lucide="file-text"></i>
+        </div>
+        <h3 class="text-lg font-bold mb-2">Color-Coded Notes</h3>
+        <p class="text-sm text-muted">
+          Capture meeting notes, ideas, study points, and daily thoughts with rich color tags, one-click copy, and pinned sticky cards.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon bg-purple-500/10 text-purple-400">
+          <i data-lucide="target"></i>
+        </div>
+        <h3 class="text-lg font-bold mb-2">Milestone Goals</h3>
+        <p class="text-sm text-muted">
+          Set ambitious targets for savings, fitness, career, and education with dynamic progress sliders, deadline countdowns, and completion celebrations.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon bg-amber/10 text-amber">
+          <i data-lucide="sun"></i>
+        </div>
+        <h3 class="text-lg font-bold mb-2">Dedicated "My Day" Hub</h3>
+        <p class="text-sm text-muted">
+          Start your morning with a dedicated single-page view containing your daily agenda, today's spending, priority tasks, and motivation quote.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon bg-rose-500/10 text-rose-500">
+          <i data-lucide="database"></i>
+        </div>
+        <h3 class="text-lg font-bold mb-2">Supabase PostgreSQL</h3>
+        <p class="text-sm text-muted">
+          Enterprise-grade PostgreSQL database with Row Level Security (RLS) guaranteeing private user isolation, instant synchronization, and an Admin Portal.
+        </p>
+      </div>
+    </section>
+
+    <!-- Professional Footer -->
+    <footer class="landing-footer">
+      <div class="footer-inner">
+        <div>
+          <div class="flex items-center gap-2 mb-2">
+            <img src="assets/logo.svg" alt="DailyDesk Logo" style="height: 32px;">
+          </div>
+          <p class="text-xs text-muted max-w-sm">
+            DailyDesk is an original personal daily management web application engineered with Supabase and vanilla web standards.
+          </p>
+        </div>
+        <div class="flex items-center gap-4 text-xs text-muted">
+          <a href="#dashboard" onclick="DailyDeskApp.navigate('dashboard')" class="hover:text-white">Workspace</a>
+          <a href="#myday" onclick="DailyDeskApp.navigate('myday')" class="hover:text-white">My Day</a>
+          <a href="#tasks" onclick="DailyDeskApp.navigate('tasks')" class="hover:text-white">Tasks</a>
+          <a href="#expenses" onclick="DailyDeskApp.navigate('expenses')" class="hover:text-white">Expenses</a>
+          <a href="javascript:void(0)" onclick="DailyDeskApp.openModal('sql-modal')" class="hover:text-white font-semibold text-indigo-400">Database Setup (SQL)</a>
+        </div>
+      </div>
+    </footer>
+  </main>
+
+  <!-- ==============================================================================
+       3. MAIN APP SHELL (Sidebar + Viewport)
+       ============================================================================== -->
+  <div id="app-main-shell">
+    <!-- Responsive Left Sidebar -->
+    <aside id="app-sidebar" class="sidebar">
+      <div>
+        <div class="flex items-center justify-between mb-4 md:hidden">
+          <span class="font-bold text-sm">Navigation</span>
+          <button id="sidebar-close-btn" class="btn-icon btn-icon-sm">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+
+        <nav class="nav-group">
+          <div class="nav-section-title">Core Views</div>
+          
+          <a class="nav-link active" data-view="dashboard" data-view-target="dashboard">
+            <span class="nav-link-left">
+              <i data-lucide="layout-dashboard"></i>
+              <span>Dashboard</span>
+            </span>
+          </a>
+
+          <a class="nav-link" data-view="myday" data-view-target="myday">
+            <span class="nav-link-left">
+              <i data-lucide="sun"></i>
+              <span>My Day</span>
+            </span>
+            <span class="badge badge-amber text-[10px]">Today</span>
+          </a>
+
+          <div class="nav-section-title mt-3">Productivity</div>
+
+          <a class="nav-link" data-view="tasks" data-view-target="tasks">
+            <span class="nav-link-left">
+              <i data-lucide="check-square"></i>
+              <span>Task Manager</span>
+            </span>
+            <span id="task-count-pending" class="badge badge-subtle text-[11px]">0</span>
+          </a>
+
+          <a class="nav-link" data-view="expenses" data-view-target="expenses">
+            <span class="nav-link-left">
+              <i data-lucide="receipt"></i>
+              <span>Expense Tracker</span>
+            </span>
+          </a>
+
+          <a class="nav-link" data-view="notes" data-view-target="notes">
+            <span class="nav-link-left">
+              <i data-lucide="file-text"></i>
+              <span>Notes</span>
+            </span>
+            <span id="notes-count-total" class="badge badge-subtle text-[11px]">0</span>
+          </a>
+
+          <a class="nav-link" data-view="goals" data-view-target="goals">
+            <span class="nav-link-left">
+              <i data-lucide="target"></i>
+              <span>Goals</span>
+            </span>
+            <span id="goals-count-active" class="badge badge-primary text-[11px]">0</span>
+          </a>
+
+          <div class="nav-section-title mt-3 admin-only" style="display: none;">Administration</div>
+
+          <a class="nav-link admin-only" data-view="admin" data-view-target="admin" style="display: none;">
+            <span class="nav-link-left">
+              <i data-lucide="shield-check" class="text-rose-500"></i>
+              <span>Admin Panel</span>
+            </span>
+            <span class="badge badge-danger text-[10px]">Admin</span>
+          </a>
+        </nav>
+      </div>
+
+      <!-- Sidebar Bottom Area -->
+      <div class="sidebar-bottom">
+        <!-- Quick Action Trigger Box -->
+        <div class="quick-action-box">
+          <div class="text-xs font-semibold text-main mb-2 flex items-center justify-between">
+            <span>Quick Create</span>
+            <i data-lucide="zap" class="icon-xxs text-amber"></i>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <button class="btn btn-outline btn-sm text-xs py-1" onclick="DailyDeskTasks.openTaskModal()">
+              <i data-lucide="plus" class="icon-xxs"></i> Task
+            </button>
+            <button class="btn btn-outline btn-sm text-xs py-1" onclick="DailyDeskExpenses.openExpenseModal()">
+              <i data-lucide="plus" class="icon-xxs"></i> Expense
+            </button>
+            <button class="btn btn-outline btn-sm text-xs py-1" onclick="DailyDeskNotes.openNoteModal()">
+              <i data-lucide="plus" class="icon-xxs"></i> Note
+            </button>
+            <button class="btn btn-outline btn-sm text-xs py-1" onclick="DailyDeskGoals.openGoalModal()">
+              <i data-lucide="plus" class="icon-xxs"></i> Goal
+            </button>
+          </div>
+        </div>
+
+        <!-- Role / Demo Account Switcher -->
+        <div class="flex items-center justify-between px-2 text-xs text-muted">
+          <button class="btn-ghost text-xs p-1" onclick="DailyDeskAuth.loginAsDemo('user')" title="Switch to Normal User">
+            Demo User
+          </button>
+          <span>•</span>
+          <button class="btn-ghost text-xs p-1 font-semibold text-rose-400" onclick="DailyDeskAuth.loginAsDemo('admin')" title="Switch to Admin Role">
+            Admin View
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Viewport Area (Container for all Page Views) -->
+    <main class="main-viewport">
+
+      <!-- ==============================================================================
+           VIEW: DASHBOARD
+           ============================================================================== -->
+      <section id="view-dashboard" class="page-view active">
+        <!-- Header Banner -->
+        <div class="page-header-row">
+          <div>
+            <span id="dash-header-date" class="text-xs font-bold uppercase tracking-wider text-muted font-mono">Today</span>
+            <h1 class="page-title mt-1">
+              Welcome back, <span id="dash-welcome-name" class="hero-title-gradient">Alex</span>
+            </h1>
+            <p class="page-subtitle">Here is your high-level productivity and lifestyle snapshot.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button class="btn btn-outline" onclick="DailyDeskApp.navigate('myday')">
+              <i data-lucide="sun"></i> Go to My Day
+            </button>
+            <button class="btn btn-primary" onclick="DailyDeskTasks.openTaskModal()">
+              <i data-lucide="plus"></i> New Task
+            </button>
+          </div>
+        </div>
+
+        <!-- Metric Summary Cards -->
+        <div class="metrics-grid">
+          <!-- Tasks Card -->
+          <div class="metric-card cursor-pointer" onclick="DailyDeskApp.navigate('tasks')">
+            <div class="metric-card-header">
+              <div class="metric-label">Today's Tasks</div>
+              <div class="metric-icon-wrap bg-indigo-500/10 text-indigo-400">
+                <i data-lucide="check-square"></i>
+              </div>
+            </div>
+            <div class="metric-value">
+              <span id="dash-task-completed">0</span> / <span id="dash-task-total">0</span>
+            </div>
+            <div class="metric-sub">
+              <span id="dash-task-pending">0</span> pending remaining
+            </div>
+          </div>
+
+          <!-- Expenses Card -->
+          <div class="metric-card cursor-pointer" onclick="DailyDeskApp.navigate('expenses')">
+            <div class="metric-card-header">
+              <div class="metric-label">Today's Expenses</div>
+              <div class="metric-icon-wrap bg-emerald-500/10 text-emerald-400">
+                <i data-lucide="dollar-sign"></i>
+              </div>
+            </div>
+            <div id="dash-exp-today" class="metric-value text-emerald-400">$0.00</div>
+            <div class="metric-sub">
+              Month total: <span id="dash-exp-month" class="font-semibold text-main">$0.00</span>
+            </div>
+          </div>
+
+          <!-- Active Goals Card -->
+          <div class="metric-card cursor-pointer" onclick="DailyDeskApp.navigate('goals')">
+            <div class="metric-card-header">
+              <div class="metric-label">Active Goals</div>
+              <div class="metric-icon-wrap bg-purple-500/10 text-purple-400">
+                <i data-lucide="target"></i>
+              </div>
+            </div>
+            <div id="dash-goals-active" class="metric-value text-purple-400">0</div>
+            <div class="metric-sub">Tracking milestones</div>
+          </div>
+
+          <!-- Productivity Score Card -->
+          <div class="metric-card cursor-pointer" onclick="DailyDeskApp.navigate('myday')">
+            <div class="metric-card-header">
+              <div class="metric-label">Productivity Score</div>
+              <div class="metric-icon-wrap bg-amber/10 text-amber">
+                <i data-lucide="sparkles"></i>
+              </div>
+            </div>
+            <div id="dash-prod-score" class="metric-value text-amber">0%</div>
+            <div class="progress-bar-track progress-bar-track-sm mt-3">
+              <div id="dash-prod-bar" class="progress-bar-fill" style="width: 0%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2-Column Dashboard Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Left 2 Cols: Priority Tasks & Spending Timeline -->
+          <div class="lg:col-span-2 flex flex-col gap-6">
+            <!-- Weekly Expense Timeline Chart Card -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Daily Spending Trend</h3>
+                  <p class="text-xs text-muted">Expense volume over the past 7 days</p>
+                </div>
+                <button class="btn btn-outline btn-sm" onclick="DailyDeskApp.navigate('expenses')">
+                  View All Expenses
+                </button>
+              </div>
+              <div class="chart-container-wrap">
+                <canvas id="expense-timeline-chart"></canvas>
+              </div>
+            </div>
+
+            <!-- Priority Tasks Widget -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Top Priority Tasks</h3>
+                  <p class="text-xs text-muted">Tasks needing immediate attention today</p>
+                </div>
+                <button class="btn btn-outline btn-sm" onclick="DailyDeskApp.navigate('tasks')">
+                  Manage All Tasks
+                </button>
+              </div>
+              <div id="dash-priority-tasks-list" class="tasks-list">
+                <!-- Rendered dynamically by tasks module -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Right 1 Col: Category Donut Chart, Goals & Recent Notes -->
+          <div class="flex flex-col gap-6">
+            <!-- Expense Category Donut Card -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Spending by Category</h3>
+                  <p class="text-xs text-muted">Distribution breakdown</p>
+                </div>
+              </div>
+              <div class="chart-container-wrap" style="height: 220px;">
+                <canvas id="expense-category-chart"></canvas>
+              </div>
+            </div>
+
+            <!-- Active Goals Progress -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Goal Progress</h3>
+                <button class="btn-icon btn-icon-sm" onclick="DailyDeskApp.navigate('goals')" title="View Goals">
+                  <i data-lucide="arrow-right"></i>
+                </button>
+              </div>
+              <div id="dash-goals-list" class="flex flex-col gap-3">
+                <!-- Rendered dynamically -->
+              </div>
+            </div>
+
+            <!-- Recent Notes Widget -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Recent Notes</h3>
+                <button class="btn-icon btn-icon-sm" onclick="DailyDeskApp.navigate('notes')" title="View Notes">
+                  <i data-lucide="arrow-right"></i>
+                </button>
+              </div>
+              <div id="dash-notes-grid" class="flex flex-col gap-2">
+                <!-- Rendered dynamically -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==============================================================================
+           VIEW: MY DAY (Dedicated Daily Agenda Hub)
+           ============================================================================== -->
+      <section id="view-myday" class="page-view">
+        <!-- Daily Inspiration Banner -->
+        <div class="myday-banner">
+          <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <span id="myday-today-date" class="text-xs font-mono font-bold uppercase tracking-wider text-indigo-300">Sunday, September 27, 2026</span>
+              <h2 id="myday-greeting" class="text-2xl md:text-3xl font-black mt-1">Good Morning, Alex!</h2>
+              <div class="mt-2 text-sm text-secondary italic">
+                <span id="myday-quote-text">“Focus on being productive instead of busy.”</span>
+                <span id="myday-quote-author" class="font-semibold text-xs ml-2">— Tim Ferriss</span>
+              </div>
+            </div>
+
+            <!-- Score Widget -->
+            <div class="bg-card/70 backdrop-blur border border-white/10 p-4 rounded-xl text-center min-w-[140px]">
+              <span class="text-xs text-muted font-semibold block">Daily Score</span>
+              <span id="myday-score-value" class="text-3xl font-black text-amber">85</span>
+              <div id="myday-score-badge" class="badge badge-success text-[10px] mt-1">Supercharged ⚡</div>
+            </div>
+          </div>
+
+          <!-- Daily Progress Bar -->
+          <div class="mt-6 pt-4 border-t border-white/10">
+            <div class="flex justify-between text-xs font-semibold mb-1.5">
+              <span>Today's Task Completion</span>
+              <span id="myday-task-progress-text">0 of 0 completed (0%)</span>
+            </div>
+            <div class="progress-bar-track">
+              <div id="myday-task-progress-bar" class="progress-bar-fill fill-success" style="width: 0%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- My Day 2-Column Split -->
+        <div class="myday-layout-grid">
+          <!-- Left: Today's Tasks & Notes -->
+          <div class="flex flex-col gap-6">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Today's Action Items</h3>
+                  <p class="text-xs text-muted">Tasks scheduled specifically for today</p>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="DailyDeskTasks.openTaskModal()">
+                  <i data-lucide="plus"></i> Add Today's Task
+                </button>
+              </div>
+              <div id="myday-tasks-list">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Today's Quick Notes & Thoughts</h3>
+                  <p class="text-xs text-muted">Pinned cards and notes modified today</p>
+                </div>
+                <button class="btn btn-outline btn-sm" onclick="DailyDeskNotes.openNoteModal()">
+                  <i data-lucide="plus"></i> Jot Note
+                </button>
+              </div>
+              <div id="myday-notes-list">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Today's Spending & Goals Snapshot -->
+          <div class="flex flex-col gap-6">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Today's Expenses</h3>
+                  <p class="text-xs text-muted">Daily expenditure tracker</p>
+                </div>
+                <span id="myday-expense-total" class="font-bold text-emerald-400 text-lg">$0.00</span>
+              </div>
+              <div id="myday-expenses-list">
+                <!-- Populated dynamically -->
+              </div>
+              <div class="mt-4 pt-3 border-t border-border-color">
+                <button class="btn btn-outline btn-sm w-full" onclick="DailyDeskExpenses.openExpenseModal()">
+                  <i data-lucide="plus"></i> Log Expense Today
+                </button>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Milestone Focus</h3>
+                  <p class="text-xs text-muted">Active goals you are advancing</p>
+                </div>
+              </div>
+              <div id="myday-goals-list">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==============================================================================
+           VIEW: TASKS
+           ============================================================================== -->
+      <section id="view-tasks" class="page-view">
+        <div class="page-header-row">
+          <div>
+            <h1 class="page-title">Task Manager</h1>
+            <p class="page-subtitle">Organize, prioritize, and track all your personal and professional tasks.</p>
+          </div>
+          <button class="btn btn-primary" onclick="DailyDeskTasks.openTaskModal()">
+            <i data-lucide="plus"></i> Create New Task
+          </button>
+        </div>
+
+        <!-- Filter Toolbar -->
+        <div class="toolbar-row">
+          <!-- Status Tabs -->
+          <div class="filter-tabs">
+            <button class="tab-btn tasks-tab-btn active" data-tab="all">All Tasks</button>
+            <button class="tab-btn tasks-tab-btn" data-tab="today">Due Today</button>
+            <button class="tab-btn tasks-tab-btn" data-tab="upcoming">Upcoming</button>
+            <button class="tab-btn tasks-tab-btn" data-tab="completed">Completed</button>
+          </div>
+
+          <div class="flex items-center gap-3 flex-wrap">
+            <!-- Search Input -->
+            <div class="search-input-wrap">
+              <i data-lucide="search" class="search-icon"></i>
+              <input type="text" id="task-search-input" placeholder="Search tasks...">
+            </div>
+
+            <!-- Category Filter -->
+            <select id="task-filter-category" class="select-custom">
+              <option value="all">All Categories</option>
+              <option value="Work">Work</option>
+              <option value="Study">Study</option>
+              <option value="Personal">Personal</option>
+              <option value="Shopping">Shopping</option>
+              <option value="Health">Health</option>
+              <option value="Other">Other</option>
+            </select>
+
+            <!-- Priority Filter -->
+            <select id="task-filter-priority" class="select-custom">
+              <option value="all">All Priorities</option>
+              <option value="High">High Priority</option>
+              <option value="Medium">Medium Priority</option>
+              <option value="Low">Low Priority</option>
+            </select>
+
+            <!-- Sort By -->
+            <select id="task-sort-by" class="select-custom">
+              <option value="due_date_asc">Due Date (Earliest First)</option>
+              <option value="due_date_desc">Due Date (Latest First)</option>
+              <option value="priority_high">Priority (Highest First)</option>
+              <option value="title_asc">Title (A-Z)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Task List Container -->
+        <div id="tasks-container" class="tasks-list">
+          <!-- Populated by tasks.js -->
+        </div>
+      </section>
+
+      <!-- ==============================================================================
+           VIEW: EXPENSES
+           ============================================================================== -->
+      <section id="view-expenses" class="page-view">
+        <div class="page-header-row">
+          <div>
+            <h1 class="page-title">Expense Tracker</h1>
+            <p class="page-subtitle">Track personal daily spending, categorize bills, and analyze financial habits.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="btn-export-expenses" class="btn btn-outline">
+              <i data-lucide="download"></i> Export CSV
+            </button>
+            <button class="btn btn-primary" onclick="DailyDeskExpenses.openExpenseModal()">
+              <i data-lucide="plus"></i> Log Expense
+            </button>
+          </div>
+        </div>
+
+        <!-- Expense Spending Metrics Row -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-label">Today's Spend</div>
+            <div id="exp-metric-today" class="metric-value text-emerald-400">$0.00</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Last 7 Days (Week)</div>
+            <div id="exp-metric-week" class="metric-value text-indigo-400">$0.00</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">This Month</div>
+            <div id="exp-metric-month" class="metric-value text-main">$0.00</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Total Logged</div>
+            <div id="exp-metric-total" class="metric-value text-amber">$0.00</div>
+          </div>
+        </div>
+
+        <!-- Expenses Filter Toolbar -->
+        <div class="toolbar-row">
+          <!-- Date Filter Buttons -->
+          <div class="filter-tabs">
+            <button class="tab-btn expense-date-btn active" data-date="all">All Dates</button>
+            <button class="tab-btn expense-date-btn" data-date="today">Today</button>
+            <button class="tab-btn expense-date-btn" data-date="week">This Week</button>
+            <button class="tab-btn expense-date-btn" data-date="month">This Month</button>
+          </div>
+
+          <div class="flex items-center gap-3 flex-wrap">
+            <div class="search-input-wrap">
+              <i data-lucide="search" class="search-icon"></i>
+              <input type="text" id="expense-search-input" placeholder="Search expense description...">
+            </div>
+
+            <select id="expense-filter-cat" class="select-custom">
+              <option value="all">All Categories</option>
+              <option value="Food">Food & Dining</option>
+              <option value="Transport">Transportation</option>
+              <option value="Shopping">Shopping</option>
+              <option value="Education">Education</option>
+              <option value="Bills">Bills & Utilities</option>
+              <option value="Entertainment">Entertainment</option>
+              <option value="Health">Health & Fitness</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Expenses Table -->
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Expense Item</th>
+                <th>Category</th>
+                <th>Date</th>
+                <th>Payment Method</th>
+                <th class="text-right">Amount</th>
+                <th class="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="expenses-table-body">
+              <!-- Populated by expenses.js -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ==============================================================================
+           VIEW: NOTES
+           ============================================================================== -->
+      <section id="view-notes" class="page-view">
+        <div class="page-header-row">
+          <div>
+            <h1 class="page-title">Personal Notes</h1>
+            <p class="page-subtitle">Quick ideas, meeting minutes, study summaries, and pinned reminders.</p>
+          </div>
+          <button class="btn btn-primary" onclick="DailyDeskNotes.openNoteModal()">
+            <i data-lucide="plus"></i> Create Note
+          </button>
+        </div>
+
+        <!-- Notes Toolbar -->
+        <div class="toolbar-row">
+          <div class="search-input-wrap">
+            <i data-lucide="search" class="search-icon"></i>
+            <input type="text" id="notes-search-input" placeholder="Search note titles & contents...">
+          </div>
+
+          <select id="notes-filter-category" class="select-custom">
+            <option value="all">All Categories</option>
+            <option value="General">General</option>
+            <option value="Work">Work</option>
+            <option value="Study">Study</option>
+            <option value="Ideas">Ideas</option>
+            <option value="Personal">Personal</option>
+            <option value="Urgent">Urgent</option>
+          </select>
+        </div>
+
+        <!-- Pinned Section -->
+        <div id="notes-pinned-section" class="mb-6" style="display: none;">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-amber mb-3 flex items-center gap-1.5">
+            <i data-lucide="pin" class="icon-xxs"></i> Pinned Notes
+          </h4>
+          <div id="notes-pinned-grid" class="notes-grid">
+            <!-- Pinned notes -->
+          </div>
+        </div>
+
+        <!-- All Notes Grid -->
+        <div>
+          <h4 class="text-xs font-bold uppercase tracking-wider text-muted mb-3">All Notes</h4>
+          <div id="notes-all-grid" class="notes-grid">
+            <!-- All notes -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ==============================================================================
+           VIEW: GOALS
+           ============================================================================== -->
+      <section id="view-goals" class="page-view">
+        <div class="page-header-row">
+          <div>
+            <h1 class="page-title">Milestone Goals</h1>
+            <p class="page-subtitle">Set, track, and celebrate your life milestones, career goals, and healthy habits.</p>
+          </div>
+          <button class="btn btn-primary" onclick="DailyDeskGoals.openGoalModal()">
+            <i data-lucide="plus"></i> Set New Goal
+          </button>
+        </div>
+
+        <!-- Goals Toolbar -->
+        <div class="toolbar-row">
+          <div class="filter-tabs">
+            <button class="tab-btn goals-tab-btn active" data-status="all">All Goals</button>
+            <button class="tab-btn goals-tab-btn" data-status="in_progress">In Progress</button>
+            <button class="tab-btn goals-tab-btn" data-status="completed">Completed</button>
+          </div>
+
+          <select id="goals-filter-category" class="select-custom">
+            <option value="all">All Categories</option>
+            <option value="Personal">Personal</option>
+            <option value="Career">Career</option>
+            <option value="Savings">Savings</option>
+            <option value="Fitness">Fitness</option>
+            <option value="Study">Study</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <!-- Goals Cards Grid -->
+        <div id="goals-container" class="goals-grid">
+          <!-- Populated by goals.js -->
+        </div>
+      </section>
+
+      <!-- ==============================================================================
+           VIEW: ADMIN PANEL (Protected Administrator Workspace)
+           ============================================================================== -->
+      <section id="view-admin" class="page-view">
+        <div class="page-header-row">
+          <div>
+            <div class="admin-badge-banner">
+              <i data-lucide="shield-alert" class="icon-xs"></i>
+              <span>DailyDesk Authorized Administration Area</span>
+            </div>
+            <h1 class="page-title">System & Database Management</h1>
+            <p class="page-subtitle">Inspect registered users, global telemetry, database schema health, and activity logs.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button class="btn btn-outline" onclick="DailyDeskApp.openModal('sql-modal')">
+              <i data-lucide="database"></i> Supabase SQL Schema
+            </button>
+            <button class="btn btn-outline" onclick="DailyDeskDB.resetSampleData(); DailyDeskApp.navigate('admin'); DailyDeskApp.showToast('Sample data reset to defaults', 'info');">
+              <i data-lucide="rotate-ccw"></i> Reset Demo Data
+            </button>
+          </div>
+        </div>
+
+        <!-- Health & Status Banner -->
+        <div id="admin-db-status-card" class="mb-6">
+          <!-- Populated by admin.js -->
+        </div>
+
+        <!-- Admin Metrics Cards Grid -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-label">Registered Users</div>
+            <div id="admin-stat-users" class="metric-value text-indigo-400">4</div>
+            <div class="metric-sub">Protected by Supabase Auth</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Total System Tasks</div>
+            <div id="admin-stat-tasks" class="metric-value text-main">0</div>
+            <div id="admin-stat-task-ratio" class="metric-sub text-emerald-400">0% completion</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Expense Transactions</div>
+            <div id="admin-stat-expenses" class="metric-value text-main">0</div>
+            <div id="admin-stat-expense-sum" class="metric-sub text-emerald-400">$0.00 volume</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Active Milestone Goals</div>
+            <div id="admin-stat-goals" class="metric-value text-amber">0</div>
+            <div class="metric-sub">Across all categories</div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Registered Users Table -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Registered Accounts</h3>
+              <span class="badge badge-primary">Database Users</span>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Joined</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-users-table-body">
+                  <!-- Populated by admin.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Real-Time Activity & Audit Log -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">System Audit Stream</h3>
+              <span class="badge badge-subtle">Recent Activity</span>
+            </div>
+            <div id="admin-activity-stream" class="flex flex-col">
+              <!-- Populated by admin.js -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==============================================================================
+           VIEW: PROFILE & SETTINGS
+           ============================================================================== -->
+      <section id="view-profile" class="page-view">
+        <div class="page-header-row">
+          <div>
+            <h1 class="page-title">Profile & Preferences</h1>
+            <p class="page-subtitle">Configure your personal details, preferred currency, and daily productivity targets.</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <!-- Profile Card -->
+          <div class="card text-center">
+            <img id="prof-avatar-preview" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80" alt="Avatar" class="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-primary object-cover">
+            <h3 class="font-bold text-lg text-main">Personal Account</h3>
+            <span id="prof-role-badge" class="badge badge-primary mt-1">Standard User</span>
+            <p class="text-xs text-muted mt-3">Row Level Security enabled. Your personal data is completely isolated and protected.</p>
+          </div>
+
+          <!-- Settings Form -->
+          <div class="card md:col-span-2">
+            <form id="profile-form">
+              <div class="form-group">
+                <label class="form-label" for="prof-input-name">Full Name</label>
+                <input type="text" id="prof-input-name" class="form-control" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="prof-input-email">Email Address (Read-only)</label>
+                <input type="email" id="prof-input-email" class="form-control" disabled>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="prof-input-currency">Preferred Currency</label>
+                  <select id="prof-input-currency" class="form-control">
+                    <option value="$">$ USD / CAD / AUD ($)</option>
+                    <option value="€">€ Euro (€)</option>
+                    <option value="£">£ British Pound (£)</option>
+                    <option value="₹">₹ Indian Rupee (₹)</option>
+                    <option value="¥">¥ Japanese Yen (¥)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Theme Mode</label>
+                  <button type="button" class="btn btn-outline w-full theme-toggle-btn">
+                    <i data-lucide="sun"></i> Toggle Light/Dark
+                  </button>
+                </div>
+              </div>
+
+              <div class="flex justify-end gap-3 mt-6">
+                <button type="submit" class="btn btn-primary">
+                  <i data-lucide="check"></i> Save Preferences
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ==============================================================================
+       4. MOBILE BOTTOM NAVIGATION
+       ============================================================================== -->
+  <nav class="mobile-bottom-nav">
+    <div class="mobile-nav-item active" onclick="DailyDeskApp.navigate('dashboard')">
+      <i data-lucide="layout-dashboard"></i>
+      <span>Home</span>
+    </div>
+    <div class="mobile-nav-item" onclick="DailyDeskApp.navigate('myday')">
+      <i data-lucide="sun"></i>
+      <span>My Day</span>
+    </div>
+    <div class="mobile-nav-item" onclick="DailyDeskApp.navigate('tasks')">
+      <i data-lucide="check-square"></i>
+      <span>Tasks</span>
+    </div>
+    <div class="mobile-nav-item" onclick="DailyDeskApp.navigate('expenses')">
+      <i data-lucide="receipt"></i>
+      <span>Expenses</span>
+    </div>
+    <div class="mobile-nav-item" onclick="DailyDeskApp.navigate('notes')">
+      <i data-lucide="file-text"></i>
+      <span>Notes</span>
+    </div>
+  </nav>
+
+  <!-- ==============================================================================
+       5. MODALS & DIALOGS
+       ============================================================================== -->
+
+  <!-- Modal: Authentication (Login / Register) -->
+  <div id="auth-modal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="auth-modal-title" class="modal-title">Sign In to DailyDesk</h3>
+        <button class="btn-icon btn-icon-sm" onclick="DailyDeskApp.closeModal('auth-modal')">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <form id="auth-form">
+        <input type="hidden" id="auth-mode" value="signin">
+        <div class="modal-body">
+          <div id="auth-name-container" class="form-group" style="display: none;">
+            <label class="form-label" for="auth-name">Your Full Name</label>
+            <input type="text" id="auth-name" class="form-control" placeholder="e.g. Alex Morgan">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="auth-email">Email Address</label>
+            <input type="email" id="auth-email" class="form-control" placeholder="name@example.com" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="auth-password">Password</label>
+            <input type="password" id="auth-password" class="form-control" placeholder="••••••••" required>
+          </div>
+          <div class="p-3 bg-subtle rounded-lg text-xs text-muted mb-3">
+            <span>Powered by Supabase Authentication. Or test instantly with demo mode:</span>
+            <div class="flex gap-2 mt-2">
+              <button type="button" class="btn btn-outline btn-sm text-xs py-1" onclick="DailyDeskAuth.loginAsDemo('user'); DailyDeskApp.closeModal('auth-modal');">
+                Demo User
+              </button>
+              <button type="button" class="btn btn-outline btn-sm text-xs py-1" onclick="DailyDeskAuth.loginAsDemo('admin'); DailyDeskApp.closeModal('auth-modal');">
+                Demo Admin
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" onclick="DailyDeskApp.toggleAuthMode()">
+            Switch to Register / Login
+          </button>
+          <button type="submit" id="auth-submit-btn" class="btn btn-primary">
+            Sign In
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Task Form (Add/Edit) -->
+  <div id="task-modal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="task-modal-title" class="modal-title">Create Task</h3>
+        <button class="btn-icon btn-icon-sm" onclick="DailyDeskApp.closeModal('task-modal')">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <form id="task-form">
+        <input type="hidden" id="task-id">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="task-input-title">Task Title</label>
+            <input type="text" id="task-input-title" class="form-control" placeholder="What needs to be accomplished?" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="task-input-desc">Description / Notes (Optional)</label>
+            <textarea id="task-input-desc" class="form-control" rows="2" placeholder="Add helpful details or checklists..."></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="task-input-category">Category</label>
+              <select id="task-input-category" class="form-control">
+                <option value="Work">Work</option>
+                <option value="Study">Study</option>
+                <option value="Personal">Personal</option>
+                <option value="Shopping">Shopping</option>
+                <option value="Health">Health</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="task-input-priority">Priority</label>
+              <select id="task-input-priority" class="form-control">
+                <option value="High">High Priority</option>
+                <option value="Medium" selected>Medium Priority</option>
+                <option value="Low">Low Priority</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="task-input-due">Due Date</label>
+            <input type="date" id="task-input-due" class="form-control">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="DailyDeskApp.closeModal('task-modal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Task</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Expense Form (Add/Edit) -->
+  <div id="expense-modal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="expense-modal-title" class="modal-title">Log Expense</h3>
+        <button class="btn-icon btn-icon-sm" onclick="DailyDeskApp.closeModal('expense-modal')">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <form id="expense-form">
+        <input type="hidden" id="expense-id">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="exp-input-title">Expense Title / Merchant</label>
+            <input type="text" id="exp-input-title" class="form-control" placeholder="e.g. Grocery Store, Coffee, Subway" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="exp-input-amount">Amount</label>
+              <input type="number" id="exp-input-amount" class="form-control" step="0.01" min="0" placeholder="0.00" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="exp-input-category">Category</label>
+              <select id="exp-input-category" class="form-control">
+                <option value="Food">Food & Dining</option>
+                <option value="Transport">Transportation</option>
+                <option value="Shopping">Shopping</option>
+                <option value="Education">Education</option>
+                <option value="Bills">Bills & Utilities</option>
+                <option value="Entertainment">Entertainment</option>
+                <option value="Health">Health & Fitness</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="exp-input-method">Payment Method</label>
+              <select id="exp-input-method" class="form-control">
+                <option value="Card">Card</option>
+                <option value="Cash">Cash</option>
+                <option value="Online/UPI">Online / UPI</option>
+                <option value="Bank Transfer">Bank Transfer</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="exp-input-date">Date</label>
+              <input type="date" id="exp-input-date" class="form-control" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="exp-input-desc">Notes / Description (Optional)</label>
+            <input type="text" id="exp-input-desc" class="form-control" placeholder="Additional details...">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="DailyDeskApp.closeModal('expense-modal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Expense</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Note Form (Add/Edit) -->
+  <div id="note-modal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="note-modal-title" class="modal-title">Create Note</h3>
+        <button class="btn-icon btn-icon-sm" onclick="DailyDeskApp.closeModal('note-modal')">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <form id="note-form">
+        <input type="hidden" id="note-id">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="note-input-title">Note Title</label>
+            <input type="text" id="note-input-title" class="form-control" placeholder="Title of your note..." required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="note-input-content">Content</label>
+            <textarea id="note-input-content" class="form-control" rows="5" placeholder="Write your ideas, outlines, or points..."></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="note-input-category">Category</label>
+              <select id="note-input-category" class="form-control">
+                <option value="General">General</option>
+                <option value="Work">Work</option>
+                <option value="Study">Study</option>
+                <option value="Ideas">Ideas</option>
+                <option value="Personal">Personal</option>
+                <option value="Urgent">Urgent</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="note-input-color">Card Color Theme</label>
+              <select id="note-input-color" class="form-control">
+                <option value="indigo">Indigo Accent</option>
+                <option value="emerald">Emerald Accent</option>
+                <option value="amber">Amber Accent</option>
+                <option value="rose">Rose Accent</option>
+                <option value="sky">Sky Accent</option>
+                <option value="purple">Purple Accent</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="flex items-center gap-2 cursor-pointer text-sm">
+              <input type="checkbox" id="note-input-pinned">
+              <span class="font-medium text-main">Pin to top of notes list</span>
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="DailyDeskApp.closeModal('note-modal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Note</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Goal Form (Add/Edit) -->
+  <div id="goal-modal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="goal-modal-title" class="modal-title">Set Milestone Goal</h3>
+        <button class="btn-icon btn-icon-sm" onclick="DailyDeskApp.closeModal('goal-modal')">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <form id="goal-form">
+        <input type="hidden" id="goal-id">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="goal-input-title">Goal Title</label>
+            <input type="text" id="goal-input-title" class="form-control" placeholder="e.g. Save $5,000, Run Half Marathon, Read 20 Books" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="goal-input-desc">Description / Plan</label>
+            <textarea id="goal-input-desc" class="form-control" rows="2" placeholder="Why does this matter? How will you achieve it?"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="goal-input-category">Category</label>
+              <select id="goal-input-category" class="form-control">
+                <option value="Personal">Personal</option>
+                <option value="Career">Career</option>
+                <option value="Savings">Savings</option>
+                <option value="Fitness">Fitness</option>
+                <option value="Study">Study</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="goal-input-target-date">Target Date</label>
+              <input type="date" id="goal-input-target-date" class="form-control">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="goal-input-target-value">Target Metric / Milestone (Optional)</label>
+            <input type="text" id="goal-input-target-value" class="form-control" placeholder="e.g. $5,000 / 21 km / 20 Books">
+          </div>
+          <div class="form-group">
+            <div class="flex justify-between items-center mb-1">
+              <label class="form-label mb-0" for="goal-input-progress">Current Progress</label>
+              <span id="goal-progress-display" class="font-bold text-indigo-400 text-sm">0%</span>
+            </div>
+            <input type="range" id="goal-input-progress" min="0" max="100" value="0" class="w-full cursor-pointer accent-indigo-500">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="DailyDeskApp.closeModal('goal-modal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Goal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Omnibar Global Command Palette (Ctrl + K) -->
+  <div id="omnibar-modal" class="modal-backdrop">
+    <div class="modal-dialog omnibar-dialog">
+      <div class="omnibar-input-wrap">
+        <i data-lucide="search" class="text-indigo-400 w-5 h-5"></i>
+        <input type="text" id="omnibar-input" class="omnibar-input" placeholder="Type a task, expense, note, or goal..." autocomplete="off">
+        <span class="kbd-shortcut">ESC</span>
+      </div>
+      <div id="omnibar-results" class="omnibar-results-container">
+        <!-- Results populated dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Supabase PostgreSQL Schema Setup Guide -->
+  <div id="sql-modal" class="modal-backdrop">
+    <div class="modal-dialog modal-dialog-lg">
+      <div class="modal-header">
+        <div class="flex items-center gap-2">
+          <i data-lucide="database" class="text-indigo-400"></i>
+          <h3 class="modal-title">Supabase Database Integration</h3>
+        </div>
+        <button class="btn-icon btn-icon-sm" onclick="DailyDeskApp.closeModal('sql-modal')">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="text-sm text-secondary mb-3">
+          DailyDesk is configured to connect to your Supabase project (<strong>https://tgpkkiisuugnzbrhqiwp.supabase.co</strong>).
+          To create the tables (<code class="bg-subtle px-1 py-0.5 rounded">profiles</code>, <code class="bg-subtle px-1 py-0.5 rounded">tasks</code>, <code class="bg-subtle px-1 py-0.5 rounded">expenses</code>, <code class="bg-subtle px-1 py-0.5 rounded">notes</code>, <code class="bg-subtle px-1 py-0.5 rounded">goals</code>) with full Row Level Security (RLS), copy and run this script in your 
+          <a href="https://supabase.com/dashboard/project/tgpkkiisuugnzbrhqiwp/sql" target="_blank" rel="noopener" class="text-indigo-400 underline font-semibold">Supabase SQL Editor</a>.
+        </p>
+
+        <div class="relative bg-surface border border-border-color rounded-lg p-3 max-h-[280px] overflow-y-auto">
+          <pre id="sql-script-content" class="text-xs font-mono text-muted whitespace-pre-wrap">-- DailyDesk Supabase Schema
+CREATE TABLE IF NOT EXISTS public.profiles (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    email TEXT UNIQUE NOT NULL,
+    full_name TEXT DEFAULT 'DailyDesk User',
+    currency TEXT DEFAULT '$',
+    daily_goal_target INTEGER DEFAULT 5,
+    role TEXT DEFAULT 'user',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.tasks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    description TEXT,
+    category TEXT DEFAULT 'Work',
+    priority TEXT DEFAULT 'Medium',
+    due_date DATE DEFAULT CURRENT_DATE,
+    completed BOOLEAN DEFAULT FALSE,
+    completed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.expenses (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    description TEXT,
+    category TEXT NOT NULL DEFAULT 'Other',
+    amount NUMERIC(12, 2) NOT NULL,
+    payment_method TEXT DEFAULT 'Card',
+    date DATE NOT NULL DEFAULT CURRENT_DATE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.notes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    content TEXT,
+    category TEXT DEFAULT 'General',
+    color TEXT DEFAULT 'indigo',
+    is_pinned BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.goals (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    description TEXT,
+    category TEXT DEFAULT 'Personal',
+    target_date DATE,
+    current_progress INTEGER DEFAULT 0,
+    target_value TEXT,
+    status TEXT DEFAULT 'In Progress',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.expenses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.goals ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can access own tasks" ON public.tasks FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can access own expenses" ON public.expenses FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can access own notes" ON public.notes FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can access own goals" ON public.goals FOR ALL USING (auth.uid() = user_id);</pre>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-copy-sql" class="btn btn-primary">
+          <i data-lucide="copy"></i> Copy Full SQL Script
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Confirmation Dialog -->
+  <div id="confirm-modal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="confirm-modal-title" class="modal-title">Confirm Action</h3>
+        <button class="btn-icon btn-icon-sm" onclick="DailyDeskApp.closeModal('confirm-modal')">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p id="confirm-modal-message" class="text-sm text-secondary">Are you sure you want to proceed?</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="DailyDeskApp.closeModal('confirm-modal')">Cancel</button>
+        <button id="btn-confirm-proceed" class="btn btn-primary bg-rose-600 hover:bg-rose-700">Delete Permanently</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notifications Container -->
+  <div id="toast-container"></div>
+
+  <!-- Application Logic Modules -->
+  <script src="js/config.js"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/tasks.js"></script>
+  <script src="js/expenses.js"></script>
+  <script src="js/notes.js"></script>
+  <script src="js/goals.js"></script>
+  <script src="js/myday.js"></script>
+  <script src="js/admin.js"></script>
+  <script src="js/search.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
